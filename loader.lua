@@ -100,7 +100,7 @@ end
 -- =========================
 
 local encrypted = game:HttpGet(
-    "https://raw.githubusercontent.com/YOURNAME/DakaitHub/main/main.enc.lua"
+    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/refs/heads/main/main.enc.lualoader.lua"
 )
 
 local decoded = dec(encrypted, 73)
