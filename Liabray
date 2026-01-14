@@ -1608,7 +1608,7 @@ local function BlurModule(Frame)
 	local MTREL = "Glass"
 	local binds = {}
 	local root = Instance.new('Folder', camera)
-	root.Name = 'LunaBlur'
+	root.Name = 'DakaitBlur'
 
 	local gTokenMH = 99999999
 	local gToken = math.random(1, gTokenMH)
@@ -1820,7 +1820,7 @@ local function Hide(Window, bind, notif)
 	bind = string.split(tostring(bind), "Enum.KeyCode.")
 	bind = bind[2]
 	if notif then
-		Luna:Notification({Title = "Interface Hidden", Content = "The interface has been hidden, you may reopen the interface by Pressing the UI Bind In Settings ("..tostring(bind)..")", Icon = "visibility_off"})
+		Luna:Notification({Title = "Hide Sucess", Content = "Dakait Ui Has be Hidden, you may reopen ("..tostring(bind)..")", Icon = "visibility_off"})
 	end
 	tween(Window, {BackgroundTransparency = 1})
 	tween(Window.Elements, {BackgroundTransparency = 1})
