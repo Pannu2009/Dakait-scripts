@@ -1,1 +1,369 @@
-https://pastebin.com/raw/038cWEbA
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/main/source"))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "DakaitHub (360)",
+    HidePremium = true,
+    SaveConfig = true,
+    ConfigFolder = "DakaitHub",
+    IntroEnabled = true,
+    IntroText = "Dakait Is Back"
+})
+
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+
+-- PLAYER
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- RESPAWN FIX (VERY IMPORTANT)
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    ESPFolder:ClearAllChildren()
+    ESPChestFolder:ClearAllChildren()
+end)
+
+-- VARIABLES
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local AimbotActive = false
+local MaxRange = 2500
+local Smoothness = 2
+local OutlawMode = "Cowboys"
+local EspActive = false
+local ChestEspActive = false
+local BreakFreeActive = false
+local DAMAGE_VALUE = 120
+local FIRE_RATE = 0.05
+local RELOAD_SPEED = 0.1
+local MAX_SHOTS = 50
+
+-- REMOTES
+local LassoEvent = ReplicatedStorage:WaitForChild("GeneralEvents"):WaitForChild("LassoEvents")
+
+-- ESP FOLDERS
+local ESPFolder = Instance.new("Folder", Workspace)
+ESPFolder.Name = "DAKAIT_Visuals"
+
+local ESPChestFolder = Instance.new("Folder", Workspace)
+ESPChestFolder.Name = "DAKAIT_ChestVis"
+
+-- TABS
+local Tab = Window:MakeTab({Name = "Aimbot Hulk", Icon = "rbxassetid://4483345998"})
+local Misc = Window:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998"})
+local InfoTab = Window:MakeTab({Name = "Info", Icon = "rbxassetid://4483345998"})
+
+-- HELPERS
+local function isVisible(targetPart)
+    local origin = workspace.CurrentCamera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPart.Parent}
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    return workspace:Raycast(origin, direction, rayParams) == nil
+end
+
+local function canTarget(targetPlr)
+    local myTeam = LocalPlayer.Team
+    local otherTeam = targetPlr.Team
+    if not myTeam or not otherTeam then return false end
+    if myTeam.Name == "Cowboys" then
+        return otherTeam.Name == "Outlaws"
+    elseif myTeam.Name == "Outlaws" then
+        if OutlawMode == "Everyone" then return true
+        elseif OutlawMode == "Cowboys" then return otherTeam.Name == "Cowboys"
+        elseif OutlawMode == "Outlaws" then return otherTeam.Name == "Outlaws" end
+    end
+    return false
+end
+
+local function getNearestTarget()
+    local bestTarget, shortestDistance = nil, MaxRange
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return nil end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") then
+            if plr.Character.Humanoid.Health > 0 and canTarget(plr) then
+                local dist = (plr.Character.Head.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                if dist < shortestDistance and isVisible(plr.Character.Head) then
+                    bestTarget = plr.Character
+                    shortestDistance = dist
+                end
+            end
+        end
+    end
+    return bestTarget
+end
+local Section = Tab:AddSection({Name = "Aim Data"})
+
+Section:AddToggle({
+    Name = "Lock on Player",
+    Default = false,
+    Callback = function(v) AimbotActive = v end
+})
+
+local RangeSlider = Section:AddSlider({
+    Name = "Aimbot Range",
+    Min = 10, Max = 2500, Default = 500,
+    Color = Color3.fromRGB(255,105,3),
+    Increment = 1,
+    ValueName = "Studs",
+    Callback = function(v) MaxRange = v end
+})
+
+Section:AddTextbox({
+    Name = "Quick Set Range",
+    Default = "500",
+    TextDisappear = false,
+    Callback = function(Value)
+        local num = tonumber(Value)
+        if num then RangeSlider:Set(num) end
+    end
+})
+
+Section:AddSlider({
+    Name = "Smoothness",
+    Min = 1, Max = 10, Default = 10,
+    Color = Color3.fromRGB(255,104,3),
+    Increment = 2,
+    ValueName = "Power",
+    Callback = function(v) Smoothness = v end
+})
+
+Section:AddDropdown({
+    Name = "Team Target Priority",
+    Default = "Cowboys",
+    Options = {"Cowboys", "Outlaws", "Everyone"},
+    Callback = function(Value) OutlawMode = Value end
+})
+
+
+Misc:AddToggle({
+    Name="Player ESP",
+    Default=false,
+    Callback=function(v)
+        EspActive=v
+        if not v then ESPFolder:ClearAllChildren() end
+    end
+})
+
+Misc:AddToggle({
+    Name="Chest ESP",
+    Default=false,
+    Callback=function(v)
+        ChestEspActive=v
+        if not v then ESPChestFolder:ClearAllChildren() end
+    end
+})
+
+Misc:AddToggle({
+    Name="Auto BreakFree",
+    Default=false,
+    Callback=function(v) BreakFreeActive=v end
+})
+
+-- INFO
+InfoTab:AddParagraph("Dakait","Dakait is coming back to community follow on youtube for more game hacks")
+
+-- AIMBOT LOOP
+RunService.RenderStepped:Connect(function()
+    if AimbotActive then
+        local target = getNearestTarget()
+        if target and target:FindFirstChild("Head") then
+            local speed = math.clamp(1 / (Smoothness * 10), 0.01, 0.3)
+            TweenService:Create(Camera, TweenInfo.new(speed, Enum.EasingStyle.Sine), {
+                CFrame = CFrame.new(Camera.CFrame.Position, target.Head.Position)
+            }):Play()
+        end
+    end
+end)
+
+-- PLAYER ESP
+local function createPlayerESP(plr, color)
+    if not HumanoidRootPart then return end
+    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local dist = math.floor((hrp.Position - HumanoidRootPart.Position).Magnitude)
+
+    local h = Instance.new("Highlight", ESPFolder)
+    h.Adornee = plr.Character
+    h.FillColor = color
+    h.FillTransparency = 0.5
+
+    local bb = Instance.new("BillboardGui", ESPFolder)
+    bb.Adornee = hrp
+    bb.Size = UDim2.new(0,80,0,20)
+    bb.StudsOffset = Vector3.new(0,3,0)
+    bb.AlwaysOnTop = true
+
+    local t = Instance.new("TextLabel", bb)
+    t.Size = UDim2.new(1,0,1,0)
+    t.BackgroundTransparency = 1
+    t.Text = plr.Name.." ["..dist.."m]"
+    t.TextColor3 = color
+    t.TextScaled = true
+    t.Font = Enum.Font.SourceSansBold
+
+    Instance.new("UIStroke", t).Color = Color3.new(0,0,0)
+end
+
+-- CHEST ESP
+local function createChestESP(chest)
+    if not HumanoidRootPart then return end
+    local opened = chest:FindFirstChild("Opened")
+    if opened and opened.Value then return end
+
+    local part = chest.PrimaryPart or chest:FindFirstChildWhichIsA("BasePart")
+    if not part then return end
+
+    local dist = math.floor((part.Position - HumanoidRootPart.Position).Magnitude)
+
+    local bb = Instance.new("BillboardGui", ESPChestFolder)
+    bb.Adornee = part
+    bb.Size = UDim2.new(0,70,0,18)
+    bb.StudsOffset = Vector3.new(0,2.5,0)
+    bb.AlwaysOnTop = true
+
+    local t = Instance.new("TextLabel", bb)
+    t.Size = UDim2.new(1,0,1,0)
+    t.BackgroundTransparency = 1
+    t.Text = chest.Name.." ["..dist.."m]"
+    t.TextColor3 = Color3.fromRGB(0,255,255)
+    t.TextScaled = true
+    t.Font = Enum.Font.SourceSansBold
+
+    Instance.new("UIStroke", t).Color = Color3.new(0,0,0)
+end
+
+-- ESP LOOP
+task.spawn(function()
+    while task.wait(0.6) do
+        if EspActive then
+            ESPFolder:ClearAllChildren()
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer and plr.Character then
+                    local c = Color3.fromRGB(255,255,0)
+                    if plr.Team and plr.Team.Name=="Outlaws" then c=Color3.fromRGB(255,0,0) end
+                    createPlayerESP(plr, c)
+                end
+            end
+        end
+
+        if ChestEspActive and Workspace:FindFirstChild("ChestFolder") then
+            ESPChestFolder:ClearAllChildren()
+            for _, chest in ipairs(Workspace.ChestFolder:GetChildren()) do
+                if chest:IsA("Model") then
+                    createChestESP(chest)
+                end
+            end
+        end
+    end
+end)
+
+-- BREAK FREE LOOP
+task.spawn(function()
+    while task.wait(0.5) do
+        if BreakFreeActive then
+            pcall(function()
+                LassoEvent:FireServer("BreakFree")
+            end)
+        end
+    end
+end)
+
+----7>88988898777
+
+local GunTab = Window:MakeTab({Name = "Gun Hulk", Icon = "rbxassetid://4483345998"})
+
+GunTab:AddToggle({
+    Name = "Jolland Pistol Buff (Safe)",
+    Default = false,
+    Callback = function(enabled)
+        if not enabled then return end
+
+        task.spawn(function()
+            while enabled do
+                task.wait(0.25)
+
+                local char = LocalPlayer.Character
+                if not char then continue end
+
+                local tool = char:FindFirstChildOfClass("Tool")
+                if not tool then continue end
+
+                if tool.Name ~= "Joalland Pistol" and tool.Name ~= "Jolland Pistol" then
+                    continue
+                end
+
+                local GunStatsModule = game.ReplicatedStorage
+                    :WaitForChild("GunScripts")
+                    :WaitForChild("GunStats")
+
+                local gunStats = require(GunStatsModule)[tool.Name]
+                if not gunStats then continue end
+
+                -- DAMAGE
+                if gunStats.Damage then gunStats.Damage = DAMAGE_VALUE end
+                if gunStats.HeadshotDamage then gunStats.HeadshotDamage = DAMAGE_VALUE end
+
+                -- FIRE RATE
+                if gunStats.FireRate then gunStats.FireRate = FIRE_RATE end
+                if gunStats.ShotDelay then gunStats.ShotDelay = FIRE_RATE end
+                if gunStats.RPM then gunStats.RPM = 1200 end
+
+                -- RELOAD
+                if gunStats.ReloadTime then gunStats.ReloadTime = RELOAD_SPEED end
+                if gunStats.ReloadSpeed then gunStats.ReloadSpeed = RELOAD_SPEED end
+
+                -- MAX SHOTS
+                if gunStats.MaxShots then gunStats.MaxShots = MAX_SHOTS end
+                if gunStats.Shots then gunStats.Shots = MAX_SHOTS end
+            end
+        end)
+    end
+})
+
+local FastDrink = false
+
+Misc:AddToggle({
+    Name = "Fast Drink Potion",
+    Default = false,
+    Callback = function(v)
+        FastDrink = v
+    end
+})
+
+task.spawn(function()
+    while task.wait(0.2) do -- FAST
+        if not FastDrink then continue end
+
+        local char = LocalPlayer.Character
+        if not char then continue end
+
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then continue end
+        if humanoid.Health >= humanoid.MaxHealth then continue end
+
+        -- potion must be EQUIPPED
+        local potion = char:FindFirstChild("Health Potion")
+        if not potion then continue end
+
+        local remote = potion:FindFirstChild("DrinkPotion")
+        if not remote then continue end
+
+        pcall(function()
+            remote:InvokeServer()
+        end)
+    end
+end)
+
+-- INIT
+OrionLib:Init()
