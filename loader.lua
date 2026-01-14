@@ -29,7 +29,7 @@ local function dec(str, key)
     return table.concat(out)
 end
 
--- KEY SYSTEM
+-- one‑time key check
 if not isfile(KEY_FILE) then
 
     local OrionLib = loadstring(game:HttpGet(
@@ -92,9 +92,12 @@ if not isfile(KEY_FILE) then
     repeat task.wait() until isfile(KEY_FILE)
 end
 
--- LOAD ENCRYPTED MAIN SCRIPT
+-- =========================
+-- LOAD ENCRYPTED MAIN
+-- =========================
+
 local encrypted = game:HttpGet(
-    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/refs/heads/main/main.enc.lua"
+    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/main/main.enc.lua"
 )
 
 local decoded = dec(encrypted, 73)
