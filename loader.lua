@@ -1,26 +1,18 @@
--- =========================
--- DAKAIT HUB | SECURE LOADER
--- =========================
-
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local KEY_FILE = "dakaithub_key.json"
 
--- executor safety
 if not (writefile and readfile and isfile and loadstring) then
     LocalPlayer:Kick("Unsupported executor")
     return
 end
 
--- basic anti-dump
 if not debug or not string.dump then
     LocalPlayer:Kick("Security violation")
     return
 end
-
--- XOR decoder
 local function dec(str, key)
     local out = {}
     for i = 1, #str do
@@ -28,8 +20,6 @@ local function dec(str, key)
     end
     return table.concat(out)
 end
-
--- one‑time key check
 if not isfile(KEY_FILE) then
 
     local OrionLib = loadstring(game:HttpGet(
@@ -91,10 +81,6 @@ if not isfile(KEY_FILE) then
     OrionLib:Init()
     repeat task.wait() until isfile(KEY_FILE)
 end
-
--- =========================
--- LOAD ENCRYPTED MAIN
--- =========================
 
 local encrypted = game:HttpGet(
     "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/main/main.enc.lua"
