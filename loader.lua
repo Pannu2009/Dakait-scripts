@@ -29,9 +29,9 @@ local function dec(str, key)
     return table.concat(out)
 end
 
--- already verified?
+-- KEY SYSTEM
 if not isfile(KEY_FILE) then
-    -- Orion only for key UI
+
     local OrionLib = loadstring(game:HttpGet(
         "https://raw.githubusercontent.com/jensonhirst/Orion/main/source"
     ))()
@@ -49,7 +49,6 @@ if not isfile(KEY_FILE) then
 
     local inputKey = ""
 
-    -- 🔑 TEAM KEYS (CHANGE WHEN NEEDED)
     local VALID_KEYS = {
         ["DAKAIT-TEAM-001"] = true,
         ["DAKAIT-RANJHA-777"] = true,
@@ -77,7 +76,6 @@ if not isfile(KEY_FILE) then
                     Content = "Welcome to DakaitHub",
                     Time = 3
                 })
-
                 task.wait(1)
                 OrionLib:Destroy()
             else
@@ -91,18 +89,13 @@ if not isfile(KEY_FILE) then
     })
 
     OrionLib:Init()
-
     repeat task.wait() until isfile(KEY_FILE)
 end
 
--- =========================
--- LOAD ENCRYPTED MAIN
--- =========================
-
+-- LOAD ENCRYPTED MAIN SCRIPT
 local encrypted = game:HttpGet(
-    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/refs/heads/main/main.enc.lualoader.lua"
+    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/main/main.enc.lua"
 )
 
 local decoded = dec(encrypted, 73)
-
 loadstring(decoded)()
