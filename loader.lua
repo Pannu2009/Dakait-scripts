@@ -94,7 +94,7 @@ end
 
 -- LOAD ENCRYPTED MAIN SCRIPT
 local encrypted = game:HttpGet(
-    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/main/main.enc.lua"
+    "https://raw.githubusercontent.com/Pannu2009/Dakait-scripts/refs/heads/main/main.enc.lua"
 )
 
 local decoded = dec(encrypted, 73)
